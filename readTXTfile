@@ -1,0 +1,33 @@
+function opt = PICO2_read_Txtdata_from_COM(flag)
+%% the file path 
+main_path = '';
+name = {'HT1Temp.txt','Vtemp.txt','HT1Correction.txt','HT2Temp.txt','Etemp.txt'}; % the file may consist several '.txt 'files, 'flag' is form parameter to discribe every file;
+if flag == 0     
+    opt.Path = strcat(main_path,'\',name(1));
+elseif flag == 1
+    opt.Path = strcat(main_path,'\',name(2));
+elseif flag== 2
+    opt.Path = strcat(main_path,'\',name(3));
+elseif flag == 3
+    opt.Path = strcat(main_path,'\',name(4));
+else
+    opt.Path = strcat(main_path,'\',name(5));
+end
+opt.Path = char(opt.Path);
+Idx = strfind(opt.Path,'\');
+num = length(Idx);
+id = opt.Path(Idx(num-1)+1:Idx(num)-1);   % device ID is set to the folder name, this statement is to find it;
+opt.ID = id(1:16);
+FileList = dir(opt.Path);
+if (~FileList.isdir)  % if it is a file
+      % read data
+      fd = fopen([[FileList.folder '/'] FileList.name], 'r');
+      i = 1; 
+      while ~feof(fd) 
+          data{i} = fgets(fd);
+          mid = cell2mat(data(i));
+          opt.t1(i) =str2double(mid(23:end-2));
+          i = i +1; 
+      end 
+      fclose(fd); 
+end
