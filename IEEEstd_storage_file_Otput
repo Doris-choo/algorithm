@@ -1,0 +1,106 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% function：
+%  IEEE standard storage of floating-point numbers  
+%  for double
+%  the output file could load in some embeded system
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function temp_param_transfer(param1,param2,name1,name2,file_path)
+p = [param1;param2]'
+file_name = ['Industry_Test_param_',name1,'_',name2,'.txt'];
+
+[~,num] = size(p);
+fd = fopen([file_path,file_name],'a');
+for l = 1:num
+inta = fix(p(l));
+if p(l) >= 0
+    sym_flag = '0';
+    decia = p(l) - inta;
+else 
+    sym_flag = '1';
+    decia = -(p(l) - inta);
+    inta = -inta;
+end
+if ((p(l) > -1) && (p(l) < 1) && (p(l)~=0))  %  data'abs < 1 but not equal 0
+    inta = dec2bin(inta); 
+    count = 1;                               %  The number of digits in an integer
+    x = 53;                                  %  The total number of integers plus decimals
+    for i = 1:x-count                        %  Binary encoding of fractional parts
+       decia = decia*2;
+       if(decia > 1)
+           str(i) = 1;
+           decia = decia - 1;
+       else
+           str(i) = 0;
+       end      
+    end
+    s = dec2bin(str)';
+   j = x-count;  
+    cnt = 0;
+    for k = 1:j                               % The number of exponents of a binary decimal in scientific notation
+        if s(k) == '0'
+            cnt = cnt+1;
+        else
+            cnt = cnt+1;
+            s(1:cnt) = '';
+            break;
+        end
+    end
+    index = 1023-cnt;  
+    for k = 1:cnt                             % The number that is zero is discarded, and the binary of the decimal is calculated to complete the 52 bits
+        decia = decia*2;
+       if(decia > 1)
+           s(j-cnt+k) = '1';
+           decia = decia - 1;
+       else
+           s(j-cnt+k) = '0';
+       end      
+    end    
+    inta = '';                                %  First drop (hidden bit technique)
+elseif p(l) == 0                              %  data == 0 
+     index = 0;
+     inta = '0';
+     s(1:52) = '0';
+else                                          % data'abs > 1
+    inta = dec2bin(inta);
+    [r,c] = size(inta);
+    if (c == 1)
+        c = 0;
+        count = 1;
+        index = count - 1 + 1023;
+    else
+        count = c;
+        index = c - 1 + 1023;
+    end
+    inta(1) = '';
+    x = 53;
+    for i = 1:x-count
+       decia = decia*2;
+       if(decia > 1)
+           str(i) = 1;
+           decia = decia - 1;
+       else
+           str(i) = 0;
+       end
+    end
+    s = dec2bin(str)';   
+end
+index_bin = dec2bin(index,11);
+
+str_all = [sym_flag,index_bin,inta,s];
+str1 = bin2dec(str_all(1:32));
+str1 = dec2hex(str1,8);
+str2 = bin2dec(str_all(33:64));
+if p(l)==0
+    str2 = dec2hex((str2),8);
+else
+    str2 = dec2hex((str2+1),8);
+end
+
+% the problem of the transformation between big-endian and little-endian about byte order 
+str2 = [circshift(str2(5:8), [0 2]),circshift(str2(1:4), [0 2])];
+fprintf(fd, '%.8s\r\n', str2);
+str1 = [circshift(str1(5:8), [0 2]),circshift(str1(1:4), [0 2])];
+fprintf(fd, '%.8s\r\n', str1);
+
+end
+fclose(fd);
